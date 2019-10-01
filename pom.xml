@@ -6,7 +6,7 @@
 
     <groupId>com.github.ludoviccarretti</groupId>
     <artifactId>postgresql-backup4j</artifactId>
-    <version>1.0.0</version>
+    <version>1.0.0-SNAPSHOT</version>
     <packaging>jar</packaging>
 
     <name>${project.groupId}:${project.artifactId}</name>
@@ -31,8 +31,8 @@
     </developers>
 
     <scm>
-        <connection>scm:git:git://github.com/ludoviccarretti/postresql-backup4j</connection>
-        <developerConnection>scm:git@github.com:ludoviccarretti/postresql-backup4j.git</developerConnection>
+        <connection>scm:git:https://github.com/ludoviccarretti/postresql-backup4j</connection>
+        <developerConnection>scm:git:https://github.com/ludoviccarretti/postresql-backup4j.git</developerConnection>
         <url>https://github.com/ludoviccarretti/postresql-backup4j</url>
         <tag>HEAD</tag>
     </scm>
@@ -191,6 +191,11 @@
                     <dependency>
                         <groupId>org.apache.maven.scm</groupId>
                         <artifactId>maven-scm-provider-gitexe</artifactId>
+                        <version>1.11.2</version>
+                    </dependency>
+                    <dependency>
+                        <groupId>org.apache.maven.scm</groupId>
+                        <artifactId>maven-scm-api</artifactId>
                         <version>1.11.2</version>
                     </dependency>
                 </dependencies>
