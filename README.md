@@ -9,6 +9,20 @@ and sending the zipped dump to email, Amazon S3, Google Drive or any other cloud
 
 **It also provides a method for importing the SQL exported by the tool - programmatically.**
 
+Installation
+============
+The artifact is available on Maven Central and can be added to the project's pom.xml:
+
+```xml
+<dependency>
+    <groupId>com.github.ludoviccarretti</groupId>
+    <artifactId>postgresql-backup4j</artifactId>
+    <version>1.0.0</version>
+</dependency>
+```
+
+The latest version can be found [here](http://search.maven.org/#search%7Cga%7C1%7Cg%3A%22com.github.ludoviccarretti%22%20a%3A%22postgresql-backup4j%22)
+
 Usage
 =====
 The minimum configuration required for the library is the database name, username and password.
