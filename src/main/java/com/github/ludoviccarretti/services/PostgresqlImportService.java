@@ -96,7 +96,7 @@ public class PostgresqlImportService {
         }
 
         //disable foreign key check
-        stmt.addBatch("SET FOREIGN_KEY_CHECKS = 0");
+        stmt.addBatch("SET session_replication_role = 'replica';");
 
 
         //now process the sql string supplied
@@ -118,7 +118,7 @@ public class PostgresqlImportService {
 
 
         //add enable foreign key check
-        stmt.addBatch("SET FOREIGN_KEY_CHECKS = 1");
+        stmt.addBatch("SET session_replication_role = 'origin';");
 
         //now execute the batch
         long[] result = stmt.executeLargeBatch();
