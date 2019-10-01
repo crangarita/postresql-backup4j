@@ -1,5 +1,6 @@
-package com.lcarretti;
+package com.github.ludoviccarretti.services;
 
+import com.github.ludoviccarretti.model.InformationSchemaGenerator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -7,6 +8,9 @@ import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+
+import static com.github.ludoviccarretti.model.InformationSchemaSequence.InformationSchemaSequenceBuilder;
+import static com.github.ludoviccarretti.model.InformationSchemaTable.InformationSchemaTableBuilder;
 
 /**
  * Created by lcarretti on 30-Sep-19.
@@ -78,25 +82,60 @@ public class PostgresqlBaseService {
 
 
     /**
+     * This is a utility function to get all sequences with their informations
+     *
+     * @param stmt Statement object
+     * @return List\<InformationSchemaGenerator\>
+     * @throws SQLException exception
+     */
+    static List<InformationSchemaGenerator> getAllSequences(Statement stmt) throws SQLException {
+        List<InformationSchemaGenerator> sequences = new ArrayList<>();
+        ResultSet rs = stmt.executeQuery("SELECT *, (select * from exec('select last_value from ' || s.sequence_schema || '.' || s.sequence_name) as e(lv bigint)) last_value FROM information_schema.sequences s;");
+        while (rs.next()) {
+            sequences.add(
+                    InformationSchemaSequenceBuilder.anInformationSchemaSequence()
+                            .withSequenceSchema(rs.getString("sequence_schema"))
+                            .withSequenceName(rs.getString("sequence_name"))
+                            .withStartValue(rs.getLong("last_value"))
+                            .withMinimumValue(rs.getLong("minimum_value"))
+                            .withMaximumValue(rs.getLong("maximum_value"))
+                            .withIncrement(rs.getLong("increment"))
+                            .withHasCycle(rs.getString("cycle_option").equals("YES"))
+                            .build()
+            );
+        }
+        return sequences;
+    }
+
+    /**
      * This is a utility function to get the names of all
      * the tables that're in the database supplied
      *
      * @param stmt Statement object
-     * @return List\<String\>
+     * @return List\<InformationSchemaGenerator\>
      * @throws SQLException exception
      */
-    static List<String> getAllTables(Statement stmt) throws SQLException {
-        List<String> table = new ArrayList<>();
-        ResultSet rs;
-        rs = stmt.executeQuery("SELECT tablename FROM pg_catalog.pg_tables WHERE schemaname != 'pg_catalog' AND schemaname != 'information_schema';");
+    static List<InformationSchemaGenerator> getAllTables(Statement stmt) throws SQLException {
+        List<InformationSchemaGenerator> table = new ArrayList<>();
+        ResultSet rs = stmt.executeQuery("SELECT p.tablename,\n" +
+                "       generate_create_table_statement(CAST(p.tablename AS text))\n" +
+                "FROM pg_catalog.pg_tables p\n" +
+                "WHERE schemaname != 'pg_catalog'\n" +
+                "  AND schemaname != 'information_schema';");
         while (rs.next()) {
-            table.add(rs.getString("tablename"));
+            table.add(
+                    InformationSchemaTableBuilder.anInformationSchemaTable()
+                            .withTableName(rs.getString(1))
+                            .withSql(rs.getString(2))
+                            .build()
+            );
         }
         return table;
     }
 
     /**
      * Create a function to create the similar function of MySQL 'SHOW CREATE TABLE'
+     *
      * @param stmt Statement object
      * @throws SQLException exception
      */
@@ -203,6 +242,13 @@ public class PostgresqlBaseService {
                 "    END LOOP;\n" +
                 "END;\n" +
                 "$BODY$ LANGUAGE PLPGSQL VOLATILE COST 100;");
+
+        stmt.execute("CREATE OR REPLACE FUNCTION public.exec(text) RETURNS\n" +
+                "SETOF RECORD LANGUAGE 'plpgsql' AS $BODY$\n" +
+                "BEGIN\n" +
+                "    RETURN QUERY EXECUTE $1 ;\n" +
+                "END\n" +
+                "$BODY$;");
     }
 
     /**
@@ -212,6 +258,7 @@ public class PostgresqlBaseService {
      * @throws SQLException exception
      */
     static void deletePostgresSqlFunction(Statement stmt) throws SQLException {
-        stmt.execute("DROP FUNCTION generate_create_table_statement(p_table_name varchar);");
+        stmt.execute("DROP FUNCTION generate_create_table_statement(p_table_name CHARACTER varying);");
+        stmt.execute("DROP FUNCTION exec(text);");
     }
 }

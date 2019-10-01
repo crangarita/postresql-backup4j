@@ -1,5 +1,6 @@
-package com.lcarretti;
+package com.github.ludoviccarretti.services;
 
+import com.github.ludoviccarretti.model.InformationSchemaGenerator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.zeroturnaround.zip.ZipUtil;
@@ -13,6 +14,8 @@ import java.util.Date;
 import java.util.List;
 import java.util.Objects;
 import java.util.Properties;
+
+import static com.github.ludoviccarretti.options.PropertiesOptions.*;
 
 /**
  * Created by lcarretti on 30-Sep-19.
@@ -29,41 +32,6 @@ public class PostgresqlExportService {
     private String zipFileName = "";
     private Properties properties;
     private File generatedZipFile;
-
-    public static final String EMAIL_HOST = "EMAIL_HOST";
-    public static final String EMAIL_PORT = "EMAIL_PORT";
-    public static final String EMAIL_USERNAME = "EMAIL_USERNAME";
-    public static final String EMAIL_PASSWORD = "EMAIL_PASSWORD";
-    public static final String EMAIL_SUBJECT = "EMAIL_SUBJECT";
-    public static final String EMAIL_MESSAGE = "EMAIL_MESSAGE";
-    public static final String EMAIL_FROM = "EMAIL_FROM";
-    public static final String EMAIL_TO = "EMAIL_TO";
-    public static final String DB_NAME = "DB_NAME";
-    public static final String DB_USERNAME = "DB_USERNAME";
-    public static final String DB_PASSWORD = "DB_PASSWORD";
-    public static final String PRESERVE_GENERATED_ZIP = "PRESERVE_GENERATED_ZIP";
-    public static final String TEMP_DIR = "TEMP_DIR";
-    public static final String ADD_IF_NOT_EXISTS = "ADD_IF_NOT_EXISTS";
-
-
-    /**
-     * @deprecated This is deprecated in favour of the same option available
-     * in the {@link PostgresqlImportService} class.
-     */
-    public static final String DROP_TABLES = "DROP_TABLES";
-
-
-    /**
-     * @deprecated This is deprecated in favour of the same option available
-     * in the {@link PostgresqlImportService} class.
-     */
-    public static final String DELETE_EXISTING_DATA = "DELETE_EXISTING_DATA";
-
-
-    public static final String JDBC_CONNECTION_STRING = "JDBC_CONNECTION_STRING";
-    public static final String JDBC_DRIVER_NAME = "JDBC_DRIVER_NAME";
-    public static final String SQL_FILE_NAME = "SQL_FILE_NAME";
-
 
     public PostgresqlExportService(Properties properties) {
         this.properties = properties;
@@ -118,37 +86,58 @@ public class PostgresqlExportService {
      * for creating the table supplied in the
      * method signature
      *
-     * @param table the table concerned
+     * @param sequence the sequence concerned
      * @return String
-     * @throws SQLException exception
      */
-    private String getTableInsertStatement(String table) throws SQLException {
-
+    private String getSequenceInsertStatement(InformationSchemaGenerator sequence) {
         StringBuilder sql = new StringBuilder();
-        ResultSet rs;
         boolean addIfNotExists = Boolean.parseBoolean(properties.containsKey(ADD_IF_NOT_EXISTS) ? properties.getProperty(ADD_IF_NOT_EXISTS, "true") : "true");
 
+        if (sequence != null) {
+            String query = sequence.toSQL();
+            sql.append("\n\n--");
+            sql.append("\n").append(PostgresqlBaseService.SQL_START_PATTERN).append("  sequence dump : ").append(sequence.getName());
+            sql.append("\n--\n\n");
 
-        if (table != null && !table.isEmpty()) {
-            rs = stmt.executeQuery("SELECT generate_create_table_statement('" + table + "');");
-            while (rs.next()) {
-                String query = rs.getString(1);
-                sql.append("\n\n--");
-                sql.append("\n").append(PostgresqlBaseService.SQL_START_PATTERN).append("  table dump : ").append(table);
-                sql.append("\n--\n\n");
-
-                if (addIfNotExists) {
-                    query = query.trim().replace("CREATE TABLE", "CREATE TABLE IF NOT EXISTS");
-                }
-
-                sql.append(query).append("\n\n");
+            if (addIfNotExists) {
+                query = query.trim().replace("CREATE SEQUENCE", "CREATE SEQUENCE IF NOT EXISTS");
             }
 
+            sql.append(query);
             sql.append("\n\n--");
-            sql.append("\n").append(PostgresqlBaseService.SQL_END_PATTERN).append("  table dump : ").append(table);
+            sql.append("\n").append(PostgresqlBaseService.SQL_END_PATTERN).append("  sequence dump : ").append(sequence.getName());
             sql.append("\n--\n\n");
         }
+        return sql.toString();
+    }
 
+    /**
+     * This will generate the SQL statement
+     * for creating the table supplied in the
+     * method signature
+     *
+     * @param table the table concerned
+     * @return String
+     */
+    private String getTableInsertStatement(InformationSchemaGenerator table) {
+        StringBuilder sql = new StringBuilder();
+        boolean addIfNotExists = Boolean.parseBoolean(properties.containsKey(ADD_IF_NOT_EXISTS) ? properties.getProperty(ADD_IF_NOT_EXISTS, "true") : "true");
+
+        if (table != null) {
+            String query = table.toSQL();
+            sql.append("\n\n--");
+            sql.append("\n").append(PostgresqlBaseService.SQL_START_PATTERN).append("  table dump : ").append(table.getName());
+            sql.append("\n--\n\n");
+
+            if (addIfNotExists) {
+                query = query.trim().replace("CREATE TABLE", "CREATE TABLE IF NOT EXISTS");
+            }
+
+            sql.append(query);
+            sql.append("\n\n--");
+            sql.append("\n").append(PostgresqlBaseService.SQL_END_PATTERN).append("  table dump : ").append(table.getName());
+            sql.append("\n--\n\n");
+        }
         return sql.toString();
     }
 
@@ -271,22 +260,36 @@ public class PostgresqlExportService {
         sql.append("\n-- Date: ").append(new SimpleDateFormat("d-M-Y H:m:s").format(new Date()));
         sql.append("\n--");
 
-        //get the tables that are in the database
-        List<String> tables = PostgresqlBaseService.getAllTables(stmt);
-
+        // Create postgres utility function
         PostgresqlBaseService.createPostgresSqlFunction(stmt);
+
+
+        // get all sequences that are in the database
+        try {
+            PostgresqlBaseService.getAllSequences(stmt).forEach(sequence -> {
+                sql.append(getSequenceInsertStatement(sequence));
+            });
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+
+        //get the tables that are in the database
+        List<InformationSchemaGenerator> tables = PostgresqlBaseService.getAllTables(stmt);
+
         //for every table, get the table creation and data
         // insert statement
-        for (String s : tables) {
+        for (InformationSchemaGenerator s : tables) {
             try {
-                sql.append(getTableInsertStatement(s.trim()));
-                sql.append(getDataInsertStatement(s.trim()));
+                sql.append(getTableInsertStatement(s));
+                sql.append(getDataInsertStatement(s.getName().trim()));
             } catch (SQLException e) {
                 e.printStackTrace();
             }
         }
 
+        // Delete all utility functions
         PostgresqlBaseService.deletePostgresSqlFunction(stmt);
+
 
         this.generatedSql = sql.toString();
         return sql.toString();
@@ -338,7 +341,7 @@ public class PostgresqlExportService {
         String sql = exportToSql();
 
         //create a temp dir to store the exported file for processing
-        dirName = properties.getProperty(PostgresqlExportService.TEMP_DIR, dirName);
+        dirName = properties.getProperty(TEMP_DIR, dirName);
         File file = new File(dirName);
         if (!file.exists()) {
             boolean res = file.mkdir();

@@ -19,20 +19,20 @@ provide email configurations as well.
 ```java
 //required properties for exporting of db
 Properties properties = new Properties();
-properties.setProperty(PostgresqlExportService.DB_NAME, "database-name");
-properties.setProperty(PostgresqlExportService.DB_USERNAME, "root");
-properties.setProperty(PostgresqlExportService.DB_PASSWORD, "root");
+properties.setProperty(PropertiesOptions.DB_NAME, "database-name");
+properties.setProperty(PropertiesOptions.DB_USERNAME, "root");
+properties.setProperty(PropertiesOptions.DB_PASSWORD, "root");
         
 //properties relating to email config
-properties.setProperty(PostgresqlExportService.EMAIL_HOST, "smtp.mailtrap.io");
-properties.setProperty(PostgresqlExportService.EMAIL_PORT, "25");
-properties.setProperty(PostgresqlExportService.EMAIL_USERNAME, "mailtrap-username");
-properties.setProperty(PostgresqlExportService.EMAIL_PASSWORD, "mailtrap-password");
-properties.setProperty(PostgresqlExportService.EMAIL_FROM, "test@smattme.com");
-properties.setProperty(PostgresqlExportService.EMAIL_TO, "backup@smattme.com");
+properties.setProperty(PropertiesOptions.EMAIL_HOST, "smtp.mailtrap.io");
+properties.setProperty(PropertiesOptions.EMAIL_PORT, "25");
+properties.setProperty(PropertiesOptions.EMAIL_USERNAME, "mailtrap-username");
+properties.setProperty(PropertiesOptions.EMAIL_PASSWORD, "mailtrap-password");
+properties.setProperty(PropertiesOptions.EMAIL_FROM, "test@smattme.com");
+properties.setProperty(PropertiesOptions.EMAIL_TO, "backup@smattme.com");
 
 //set the outputs temp dir
-properties.setProperty(PostgresqlExportService.TEMP_DIR, new File("external").getPath());
+properties.setProperty(PropertiesOptions.TEMP_DIR, new File("external").getPath());
 
 PostgresqlExportService postgresqlExportService = new PostgresqlExportService(properties);
 postgresqlExportService.export();
@@ -73,9 +73,9 @@ String generatedSql = postgresqlExportService.getGeneratedSql();
 Other parameters are:
 
 ```java
-properties.setProperty(PostgresqlExportService.ADD_IF_NOT_EXISTS, "true");
-properties.setProperty(PostgresqlExportService.JDBC_DRIVER_NAME, "root.ss");
-properties.setProperty(PostgresqlExportService.JDBC_CONNECTION_STRING, "jdbc:postgresql://localhost:5432/database-name");
+properties.setProperty(PropertiesOptions.ADD_IF_NOT_EXISTS, "true");
+properties.setProperty(PropertiesOptions.JDBC_DRIVER_NAME, "root.ss");
+properties.setProperty(PropertiesOptions.JDBC_CONNECTION_STRING, "jdbc:postgresql://localhost:5432/database-name");
 ```
 
 They are explained in a detailed manner in this [tutorial](https://smattme.com/blog/technology/how-to-backup-mysql-database-programmatically-using-mysql-backup4j)

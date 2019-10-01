@@ -1,5 +1,6 @@
-package com.lcarretti;
+package com.github.ludoviccarretti.services;
 
+import com.github.ludoviccarretti.model.InformationSchemaGenerator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -23,7 +24,7 @@ public class PostgresqlImportService {
     private String jdbcDriver;
     private boolean deleteExisting;
     private boolean dropExisting;
-    private List<String> tables;
+    private List<InformationSchemaGenerator> tables;
     private Logger logger = LoggerFactory.getLogger(PostgresqlImportService.class);
 
     private PostgresqlImportService() {
@@ -74,19 +75,19 @@ public class PostgresqlImportService {
             logger.debug("tables found for deleting/dropping: \n" + tables.toString());
 
             //execute delete query
-            for (String table : tables) {
+            for (InformationSchemaGenerator table : tables) {
 
                 //if deleteExisting and dropExisting is true
                 //skip the deleteExisting query
                 //dropExisting will take care of both
                 if (deleteExisting && !dropExisting) {
-                    String delQ = "DELETE FROM '" + table + "';";
+                    String delQ = "DELETE FROM '" + table.getName() + "';";
                     logger.debug("adding " + delQ + " to batch");
                     stmt.addBatch(delQ);
                 }
 
                 if (dropExisting) {
-                    String dropQ = "DROP TABLE IF EXISTS '" + table + "'";
+                    String dropQ = "DROP TABLE IF EXISTS '" + table.getName() + "'";
                     logger.debug("adding " + dropQ + " to batch");
                     stmt.addBatch(dropQ);
                 }
