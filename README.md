@@ -17,7 +17,7 @@ The artifact is available on Maven Central and can be added to the project's pom
 <dependency>
     <groupId>com.github.ludoviccarretti</groupId>
     <artifactId>postgresql-backup4j</artifactId>
-    <version>1.0.0</version>
+    <version>1.0.1</version>
 </dependency>
 ```
 
